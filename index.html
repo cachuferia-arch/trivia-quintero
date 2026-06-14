@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>¡Trivia Quintero! — Juego del Stand</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Montserrat',sans-serif;
+    background:linear-gradient(135deg,#0a2a4a 0%,#1a5080 50%,#0d3d2e 100%);
+    min-height:100vh; display:flex; justify-content:center; align-items:center; padding:20px;
+  }
+  .game-container {
+    width:700px; background:white; border-radius:20px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.5); overflow:hidden;
+  }
+
+  /* HEADER */
+  .game-header {
+    background:linear-gradient(135deg,#0a2a4a,#1a6e5a);
+    padding:24px 32px; color:white; text-align:center; position:relative;
+  }
+  .game-header h1 { font-size:28px; font-weight:900; letter-spacing:-0.5px; }
+  .game-header h1 span { color:#ffd966; }
+  .game-header p { font-size:11px; font-weight:300; color:rgba(255,255,255,0.7); letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
+  .score-bar { display:flex; justify-content:space-between; align-items:center; margin-top:14px; background:rgba(255,255,255,0.1); border-radius:8px; padding:8px 16px; }
+  .score-item { text-align:center; }
+  .score-item .val { font-size:20px; font-weight:700; color:#ffd966; }
+  .score-item .lbl { font-size:8px; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:1px; }
+
+  /* PROGRESS */
+  .progress-bar { height:5px; background:#e0e0e0; }
+  .progress-fill { height:5px; background:linear-gradient(90deg,#1a6e5a,#ffd966); transition:width 0.5s ease; }
+
+  /* SCREENS */
+  .screen { display:none; padding:32px; }
+  .screen.active { display:block; }
+
+  /* START SCREEN */
+  .start-emoji { font-size:80px; text-align:center; display:block; margin-bottom:16px; }
+  .start-title { font-size:22px; font-weight:900; color:#0a2a4a; text-align:center; margin-bottom:8px; }
+  .start-sub { font-size:12px; color:#777; text-align:center; font-weight:300; line-height:1.6; margin-bottom:24px; }
+  .categories { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px; }
+  .cat-badge { background:#f4f6fb; border:1px solid #dde4f0; border-radius:8px; padding:12px 8px; text-align:center; }
+  .cat-badge .icon { font-size:22px; display:block; margin-bottom:4px; }
+  .cat-badge p { font-size:9px; font-weight:600; color:#1a4a7a; text-transform:uppercase; letter-spacing:0.5px; }
+
+  /* QUESTION SCREEN */
+  .q-category { font-size:9px; font-weight:700; color:#1a6e5a; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; }
+  .q-number { font-size:11px; color:#bbb; margin-bottom:8px; font-weight:400; }
+  .q-text { font-size:18px; font-weight:700; color:#0a2a4a; line-height:1.4; margin-bottom:6px; }
+  .q-emoji { font-size:50px; text-align:center; display:block; margin:16px 0; }
+  .options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+  .option-btn {
+    background:#f7f9fc; border:2px solid #dde4f0; border-radius:10px;
+    padding:14px 16px; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:600;
+    color:#0a2a4a; cursor:pointer; text-align:left; transition:all 0.15s;
+    display:flex; align-items:center; gap:10px;
+  }
+  .option-btn:hover { background:#eef2fb; border-color:#1a5080; transform:translateY(-1px); }
+  .option-btn .opt-letter { background:#1a5080; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+  .option-btn.correct { background:#e8f8ee; border-color:#2da862; color:#1a6e5a; }
+  .option-btn.correct .opt-letter { background:#2da862; }
+  .option-btn.wrong { background:#fef0f0; border-color:#e05555; color:#c03030; }
+  .option-btn.wrong .opt-letter { background:#e05555; }
+  .option-btn:disabled { cursor:default; transform:none; }
+
+  /* FEEDBACK */
+  .feedback {
+    margin-top:16px; border-radius:10px; padding:14px 16px; display:none;
+    font-size:13px; font-weight:600; line-height:1.5;
+  }
+  .feedback.correct { background:#e8f8ee; border:1px solid #2da862; color:#1a6e5a; }
+  .feedback.wrong   { background:#fef0f0; border:1px solid #e05555; color:#c03030; }
+  .feedback-fact    { font-size:11px; font-weight:300; color:#555; margin-top:6px; font-style:italic; }
+
+  /* TIMER */
+  .timer-row { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .timer-bar-bg { flex:1; height:8px; background:#f0f0f0; border-radius:4px; overflow:hidden; }
+  .timer-bar { height:8px; border-radius:4px; background:linear-gradient(90deg,#2da862,#ffd966,#e05555); transition:width 0.1s linear; }
+  .timer-num { font-size:13px; font-weight:700; color:#0a2a4a; min-width:24px; text-align:right; }
+
+  /* RESULT SCREEN */
+  .result-emoji { font-size:80px; text-align:center; display:block; margin:0 0 10px; }
+  .result-title { font-size:24px; font-weight:900; color:#0a2a4a; text-align:center; margin-bottom:6px; }
+  .result-score { font-size:48px; font-weight:900; color:#1a6e5a; text-align:center; }
+  .result-sub { font-size:12px; color:#888; text-align:center; margin-bottom:20px; }
+  .result-badges { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .r-badge { border-radius:8px; padding:10px 14px; text-align:center; }
+  .r-badge .b-num { font-size:20px; font-weight:700; }
+  .r-badge .b-lbl { font-size:8px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin-top:2px; }
+  .r-badge.blue { background:#e8f0fc; color:#1a5080; }
+  .r-badge.green { background:#e8f8ee; color:#1a6e5a; }
+  .r-badge.gold  { background:#fef8e8; color:#a07020; }
+  .result-message { background:#f4f6fb; border-radius:10px; padding:16px; font-size:12px; color:#555; text-align:center; line-height:1.6; font-weight:300; margin-bottom:20px; }
+
+  /* BUTTONS */
+  .btn-primary {
+    background:linear-gradient(135deg,#0a2a4a,#1a6e5a); color:white;
+    border:none; border-radius:10px; padding:14px 28px;
+    font-family:'Montserrat',sans-serif; font-size:14px; font-weight:700;
+    cursor:pointer; width:100%; letter-spacing:1px; text-transform:uppercase;
+    transition:opacity 0.2s;
+  }
+  .btn-primary:hover { opacity:0.9; }
+  .btn-secondary {
+    background:white; color:#1a4a7a;
+    border:2px solid #1a4a7a; border-radius:10px; padding:12px 24px;
+    font-family:'Montserrat',sans-serif; font-size:13px; font-weight:700;
+    cursor:pointer; letter-spacing:1px; transition:all 0.2s;
+  }
+  .btn-secondary:hover { background:#f0f4fa; }
+  .btn-row { display:flex; gap:10px; }
+  .btn-row .btn-primary { flex:2; }
+  .btn-row .btn-secondary { flex:1; }
+
+  .next-btn { display:none; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="game-container">
+  <div class="game-header">
+    <h1>TRIVIA <span>QUINTERO</span> 🌊</h1>
+    <p>¿Cuánto sabes del destino costero más especial de Chile?</p>
+    <div class="score-bar">
+      <div class="score-item"><div class="val" id="current-score">0</div><div class="lbl">Puntos</div></div>
+      <div class="score-item"><div class="val" id="streak">0</div><div class="lbl">Racha</div></div>
+      <div class="score-item"><div class="val" id="q-count">0/15</div><div class="lbl">Preguntas</div></div>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+  <!-- START -->
+  <div class="screen active" id="screen-start">
+    <span class="start-emoji">🏴‍☠️</span>
+    <div class="start-title">¡Descubre Quintero!</div>
+    <div class="start-sub">15 preguntas sobre naturaleza, historia, gastronomía y cultura de la Comuna de Quintero — Región de Valparaíso.<br><br>Cada respuesta correcta vale <strong>10 puntos</strong>. ¡Responde rápido para bonificación!</div>
+    <div class="categories">
+      <div class="cat-badge"><span class="icon">🌊</span><p>Naturaleza</p></div>
+      <div class="cat-badge"><span class="icon">🏴‍☠️</span><p>Historia</p></div>
+      <div class="cat-badge"><span class="icon">🦊</span><p>Fauna</p></div>
+      <div class="cat-badge"><span class="icon">🍽️</span><p>Gastronomía</p></div>
+      <div class="cat-badge"><span class="icon">🗺️</span><p>Geografía</p></div>
+      <div class="cat-badge"><span class="icon">🏖️</span><p>Turismo</p></div>
+    </div>
+    <button class="btn-primary" onclick="startGame()">🚀 ¡COMENZAR TRIVIA!</button>
+  </div>
+
+  <!-- QUESTION -->
+  <div class="screen" id="screen-question">
+    <div class="q-category" id="q-cat"></div>
+    <div class="q-number" id="q-num"></div>
+    <div class="timer-row">
+      <div class="timer-bar-bg"><div class="timer-bar" id="timer-bar"></div></div>
+      <div class="timer-num" id="timer-num">15</div>
+    </div>
+    <div class="q-text" id="q-text"></div>
+    <span class="q-emoji" id="q-emoji"></span>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn-primary next-btn" id="next-btn" onclick="nextQuestion()">SIGUIENTE PREGUNTA →</button>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="screen-result">
+    <span class="result-emoji" id="result-emoji"></span>
+    <div class="result-title" id="result-title"></div>
+    <div class="result-score" id="result-score"></div>
+    <div class="result-sub" id="result-sub"></div>
+    <div class="result-badges">
+      <div class="r-badge blue"><div class="b-num" id="r-correct">0</div><div class="b-lbl">Correctas</div></div>
+      <div class="r-badge green"><div class="b-num" id="r-streak">0</div><div class="b-lbl">Mejor racha</div></div>
+      <div class="r-badge gold"><div class="b-num" id="r-bonus">0</div><div class="b-lbl">Bonus rápido</div></div>
+    </div>
+    <div class="result-message" id="result-message"></div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="startGame()">🔄 JUGAR DE NUEVO</button>
+      <button class="btn-secondary" onclick="showStart()">🏠 INICIO</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const preguntas = [
+  {
+    cat:"🌊 Naturaleza", emoji:"🏜️",
+    q:"¿Cómo se llama el sistema de dunas clave de Quintero, famoso además por el surf?",
+    opts:["Dunas de Mantagua","Dunas de Ritoque","Dunas de Loncura","Dunas de Papagayo"],
+    c:1, fact:"Las Dunas de Ritoque forman uno de los campos dunares más extensos de la costa central chilena."
+  },
+  {
+    cat:"🦊 Fauna", emoji:"🦊",
+    q:"¿Cuál es el animal silvestre más emblemático de las dunas y matorrales de Quintero?",
+    opts:["Zorro Culpeo","Puma","Zorro Chilla","Coipo"],
+    c:2, fact:"El Zorro Chilla (Lycalopex griseus) habita los matorrales esclerófilos costeros y es símbolo del territorio."
+  },
+  {
+    cat:"🏴‍☠️ Historia", emoji:"🏴‍☠️",
+    q:"Según la leyenda, ¿qué famoso corsario escondió su tesoro en la Cueva del Pirata de Quintero?",
+    opts:["Henry Morgan","Blackbeard","Francis Drake","John Hawkins"],
+    c:2, fact:"Se dice que Francis Drake saqueó Valparaíso en diciembre de 1578 y escondió parte del botín en las cuevas costeras de Quintero."
+  },
+  {
+    cat:"🌿 Ecosistema", emoji:"🦢",
+    q:"¿Cuántas especies de aves aproximadamente habitan el Humedal de Mantagua?",
+    opts:["Más de 50","Más de 100","Más de 200","Más de 300"],
+    c:1, fact:"El Humedal de Mantagua es un hotspot de biodiversidad con más de 100 especies de aves, incluyendo muchas migratorias."
+  },
+  {
+    cat:"🗺️ Geografía", emoji:"⛰️",
+    q:"¿A cuántos metros de altura se encuentra el Cerro de la Cruz en Quintero?",
+    opts:["95 metros","175 metros","250 metros","320 metros"],
+    c:1, fact:"Desde los 175 metros del Cerro de la Cruz se puede ver una panorámica de la bahía, las dunas y el litoral."
+  },
+  {
+    cat:"📅 Cultura", emoji:"✝️",
+    q:"¿En qué mes se realiza la famosa procesión náutica del Cristo Sumergido en Quintero?",
+    opts:["Diciembre","Marzo","Enero","Junio"],
+    c:2, fact:"Cada enero la comunidad de Quintero realiza una emotiva procesión náutica en honor al Cristo Sumergido en la bahía."
+  },
+  {
+    cat:"🌲 Naturaleza", emoji:"🌲",
+    q:"¿Dónde se encuentra el Santuario de la Naturaleza Bosque Las Petras?",
+    opts:["En el Humedal de Mantagua","Dentro de la Base Aérea","En el Cerro de la Cruz","En la Puntilla Sanfuentes"],
+    c:1, fact:"El Bosque Las Petras es un bosque relicto único que sobrevive protegido dentro del perímetro de la Base Aérea de Quintero."
+  },
+  {
+    cat:"🍽️ Gastronomía", emoji:"🦞",
+    q:"¿Cuáles son las dos caletas pesqueras principales para la gastronomía de Quintero?",
+    opts:["Ritoque y Loncura","El Manzano y Embarcadero","Papagayo y El Burrito","San Pedro y Albatros"],
+    c:1, fact:"Las Caletas El Manzano y Embarcadero son el corazón gastronómico de Quintero, famosas por sus mariscos frescos y el 'Conejo Escalfado'."
+  },
+  {
+    cat:"🗺️ Geografía", emoji:"📍",
+    q:"¿A cuántos kilómetros está aproximadamente la Ciudad de Quintero de Santiago?",
+    opts:["60 km","101 km","145 km","200 km"],
+    c:1, fact:"Quintero se ubica a unos 101 km de Santiago, lo que la hace un destino muy accesible para viajes de fin de semana."
+  },
+  {
+    cat:"🏖️ Turismo", emoji:"🌊",
+    q:"¿Cómo se llama la playa más romántica y emblemática de la zona urbana de Quintero?",
+    opts:["Playa Papagayo","Playa Ritoque","Playa Los Enamorados","Playa El Caleuche"],
+    c:2, fact:"Playa Los Enamorados es la playa más icónica del área urbana de Quintero, con su nombre evocando historias de amor locales."
+  },
+  {
+    cat:"🌿 Ecosistema", emoji:"🏜️",
+    q:"¿Qué tipo de vegetación predomina junto a las dunas de Ritoque?",
+    opts:["Bosque nativo lluvioso","Matorral esclerófilo costero","Estepa patagónica","Selva valdiviana"],
+    c:1, fact:"El matorral esclerófilo es la vegetación típica de la zona costera central de Chile, perfectamente adaptada a la sequía veraniega."
+  },
+  {
+    cat:"🏴‍☠️ Historia", emoji:"⚓",
+    q:"¿Qué hipótesis alternativa existe sobre el origen del nombre 'Cueva del Pirata'?",
+    opts:["Cueva del Minero","Cueva del Cuervo","Cueva del Náufrago","Cueva del Cazador"],
+    c:1, fact:"Una hipótesis lingüística sugiere que el nombre derivó de 'Cueva del Cuervo', por los jotes que anidaban masivamente en los acantilados."
+  },
+  {
+    cat:"🗺️ Geografía", emoji:"🗺️",
+    q:"¿En qué región de Chile se ubica la Comuna de Quintero?",
+    opts:["Región Metropolitana","Región del Maule","Región de Valparaíso","Región del Libertador"],
+    c:2, fact:"Quintero pertenece a la Región de Valparaíso (V Región), y limita con las comunas de Puchuncaví, Quillota y Concón."
+  },
+  {
+    cat:"🦊 Fauna", emoji:"🦅",
+    q:"¿Cuál de estas aves NO es típica del Humedal de Mantagua?",
+    opts:["Pato jergón","Garza cuca","Pelícano peruano","Cóndor de Los Andes"],
+    c:3, fact:"El cóndor es ave de zonas andinas, no de humedales costeros. El humedal de Mantagua alberga patos, garzas, taguas, flamencos y pelícanos."
+  },
+  {
+    cat:"🏖️ Turismo", emoji:"🏄",
+    q:"¿Qué deporte acuático es especialmente popular en las Dunas de Ritoque?",
+    opts:["Natación sincronizada","Polo acuático","Surf y sandboard","Remo olímpico"],
+    c:2, fact:"Las dunas de Ritoque y las olas del sector son un punto reconocido para el surf, además del sandboard en las propias dunas."
+  }
+];
+
+let currentQ = 0, score = 0, streak = 0, bestStreak = 0, correctCount = 0, bonusPoints = 0;
+let timer = null, timeLeft = 15;
+let shuffled = [];
+
+function shuffle(arr) {
+  return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]);
+}
+
+function showStart() {
+  document.getElementById('screen-start').classList.add('active');
+  document.getElementById('screen-question').classList.remove('active');
+  document.getElementById('screen-result').classList.remove('active');
+}
+
+function startGame() {
+  currentQ = 0; score = 0; streak = 0; bestStreak = 0; correctCount = 0; bonusPoints = 0;
+  shuffled = shuffle([...preguntas]);
+  updateScore();
+  document.getElementById('screen-start').classList.remove('active');
+  document.getElementById('screen-result').classList.remove('active');
+  document.getElementById('screen-question').classList.add('active');
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = shuffled[currentQ];
+  document.getElementById('q-cat').textContent = q.cat;
+  document.getElementById('q-num').textContent = `Pregunta ${currentQ+1} de ${shuffled.length}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('q-emoji').textContent = q.emoji;
+  document.getElementById('q-count').textContent = `${currentQ}/${shuffled.length}`;
+  document.getElementById('progress').style.width = (currentQ/shuffled.length*100)+'%';
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'none';
+
+  const letters = ['A','B','C','D'];
+  const optsEl = document.getElementById('options');
+  optsEl.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="opt-letter">${letters[i]}</span>${opt}`;
+    btn.onclick = () => selectAnswer(i);
+    optsEl.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+function startTimer() {
+  timeLeft = 15;
+  clearInterval(timer);
+  updateTimer();
+  timer = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      timeOut();
+    }
+  }, 1000);
+}
+
+function updateTimer() {
+  document.getElementById('timer-num').textContent = timeLeft;
+  document.getElementById('timer-bar').style.width = (timeLeft/15*100)+'%';
+}
+
+function timeOut() {
+  const q = shuffled[currentQ];
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach(b => b.disabled = true);
+  btns[q.c].classList.add('correct');
+  streak = 0;
+  updateScore();
+  showFeedback(false, q.fact, true);
+}
+
+function selectAnswer(idx) {
+  clearInterval(timer);
+  const q = shuffled[currentQ];
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach(b => b.disabled = true);
+
+  const isCorrect = idx === q.c;
+  btns[idx].classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) btns[q.c].classList.add('correct');
+
+  if (isCorrect) {
+    const bonus = timeLeft >= 10 ? 5 : timeLeft >= 5 ? 3 : 0;
+    score += 10 + bonus;
+    bonusPoints += bonus;
+    streak++;
+    correctCount++;
+    if (streak > bestStreak) bestStreak = streak;
+  } else {
+    streak = 0;
+  }
+  updateScore();
+  showFeedback(isCorrect, q.fact, false);
+}
+
+function showFeedback(correct, fact, timeout) {
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback ' + (correct ? 'correct' : 'wrong');
+  fb.innerHTML = `
+    ${timeout ? '⏱️ ¡Se acabó el tiempo!' : correct ? '✅ ¡Correcto!' : '❌ Incorrecto'}
+    ${streak > 1 ? `<strong> · Racha de ${streak}!</strong>` : ''}
+    <div class="feedback-fact">💡 ${fact}</div>
+  `;
+  fb.style.display = 'block';
+  document.getElementById('next-btn').style.display = 'block';
+}
+
+function updateScore() {
+  document.getElementById('current-score').textContent = score;
+  document.getElementById('streak').textContent = streak;
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= shuffled.length) {
+    showResult();
+  } else {
+    showQuestion();
+  }
+}
+
+function showResult() {
+  document.getElementById('screen-question').classList.remove('active');
+  document.getElementById('screen-result').classList.add('active');
+  document.getElementById('progress').style.width = '100%';
+
+  const pct = Math.round(correctCount / shuffled.length * 100);
+  let emoji, title, msg;
+  if (pct >= 90) { emoji='🏆'; title='¡Experto en Quintero!'; msg='¡Impresionante! Conoces Quintero como un verdadero guía turístico local. ¡Eres un embajador del territorio!'; }
+  else if (pct >= 70) { emoji='🌟'; title='¡Gran conocedor!'; msg='Excelente resultado. Tienes un sólido conocimiento sobre los atractivos y la historia de Quintero. ¡Visítalo pronto!'; }
+  else if (pct >= 50) { emoji='🌊'; title='¡Aventurero!'; msg='Buen comienzo. Quintero tiene mucho más por descubrir. ¡Anímate a visitarlo y conocer sus secretos!'; }
+  else { emoji='🦊'; title='¡El Zorro te llama!'; msg='Quintero te está esperando. Cada rincón del litoral guarda una historia. ¡Explora y aprende jugando!'; }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-score').textContent = score + ' pts';
+  document.getElementById('result-sub').textContent = `${correctCount} de ${shuffled.length} respuestas correctas (${pct}%)`;
+  document.getElementById('r-correct').textContent = correctCount;
+  document.getElementById('r-streak').textContent = bestStreak;
+  document.getElementById('r-bonus').textContent = '+'+bonusPoints;
+  document.getElementById('result-message').textContent = msg;
+}
+</script>
+</body>
+</html>
